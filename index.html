@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>贪吃蛇 | Snake Game</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#fff;color:#333;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
+.container{text-align:center;width:100%}
+.lang-btn{position:fixed;top:16px;left:16px;background:#00BCD4;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;z-index:20}
+.lang-btn:hover{background:#0097A7}
+.header{display:flex;justify-content:center;align-items:center;gap:24px;margin-bottom:10px}
+h1{font-size:24px;font-weight:600;color:#00BCD4}
+.score{font-size:18px;font-weight:600;color:#00BCD4;background:#f0f8f9;padding:6px 16px;border-radius:8px}
+canvas{display:block;margin:0 auto;background:#f0f8f9;border-radius:8px}
+.overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:15;justify-content:center;align-items:center}
+.overlay.show{display:flex}
+.dialog{background:#fff;border-radius:14px;padding:32px 40px;text-align:center;max-width:320px;width:90%}
+.dialog h2{font-size:22px;color:#00BCD4;margin-bottom:8px}
+.dialog p{font-size:15px;color:#333;margin-bottom:20px}
+.dialog button{background:#00BCD4;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:15px;cursor:pointer;font-family:inherit}
+.dialog button:hover{background:#0097A7}
+</style>
+</head>
+<body>
+
+<button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
+
+<div class="container">
+  <div class="header">
+    <h1 data-key="title">贪吃蛇</h1>
+    <span class="score" id="scoreDisplay">0</span>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<div class="overlay" id="gameOverOverlay">
+  <div class="dialog">
+    <h2 data-key="gameOver">游戏结束</h2>
+    <p id="finalScoreText"></p>
+    <button onclick="restart()" data-key="restart">重新开始</button>
+  </div>
+</div>
+
+<script>
+const zh = { title:"贪吃蛇", gameOver:"游戏结束", score:"得分", restart:"重新开始", finalScore:"最终得分" };
+const en = { title:"Snake Game", gameOver:"Game Over", score:"Score", restart:"Restart", finalScore:"Final Score" };
+let lang = localStorage.getItem('snake_lang') || 'zh';
+let ui = lang === 'zh' ? zh : en;
+function toggleLang(){ lang = lang === 'zh' ? 'en' : 'zh'; ui = lang === 'zh' ? zh : en; localStorage.setItem('snake_lang', lang); updateUI(); }
+function updateUI(){
+  document.getElementById('langBtn').textContent = lang === 'zh' ? 'EN' : '中';
+  document.querySelectorAll('[data-key]').forEach(el=>{ const k=el.getAttribute('data-key'); if(ui[k]) el.textContent=ui[k]; });
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let gridSize = 20, tileCount, snake, food, direction, nextDirection, score, gameLoop, gameOver = false;
+
+function resize(){
+  const size = Math.min(window.innerWidth - 32, window.innerHeight - 120, 560);
+  canvas.width = size; canvas.height = size;
+  tileCount = Math.floor(size / gridSize);
+}
+function init(){
+  resize(); score = 0; gameOver = false;
+  const cx = Math.floor(tileCount/2);
+  snake = [{x:cx,y:Math.floor(tileCount/2)}];
+  direction = {x:1,y:0}; nextDirection = {x:1,y:0};
+  spawnFood();
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('gameOverOverlay').classList.remove('show');
+}
+function spawnFood(){
+  const all = []; for(let x=0;x<tileCount;x++) for(let y=0;y<tileCount;y++) all.push({x,y});
+  const free = all.filter(p=>!snake.some(s=>s.x===p.x&&s.y===p.y));
+  food = free[Math.floor(Math.random()*free.length)];
+}
+function draw(){
+  ctx.fillStyle = '#f0f8f9'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#00BCD4';
+  snake.forEach(s => ctx.fillRect(s.x*gridSize,s.y*gridSize,gridSize-1,gridSize-1));
+  ctx.fillStyle = '#0097A7'; ctx.fillRect(food.x*gridSize,food.y*gridSize,gridSize-1,gridSize-1);
+}
+function step(){
+  direction = nextDirection;
+  const head = {x:snake[0].x+direction.x, y:snake[0].y+direction.y};
+  if(head.x<0||head.x>=tileCount||head.y<0||head.y>=tileCount||snake.some(s=>s.x===head.x&&s.y===head.y)){
+    endGame(); return;
+  }
+  snake.unshift(head);
+  if(head.x===food.x && head.y===food.y){ score++; document.getElementById('scoreDisplay').textContent=score; spawnFood(); }
+  else { snake.pop(); }
+  draw();
+}
+function endGame(){
+  gameOver = true; clearInterval(gameLoop);
+  document.getElementById('finalScoreText').textContent = ui.finalScore + ': ' + score;
+  document.getElementById('gameOverOverlay').classList.add('show');
+}
+function restart(){ init(); gameLoop = setInterval(step, 100); }
+document.addEventListener('keydown', e => {
+  if(gameOver) return;
+  const k = e.key;
+  if((k==='ArrowUp'||k==='w')&&direction.y!==1) nextDirection={x:0,y:-1};
+  if((k==='ArrowDown'||k==='s')&&direction.y!==-1) nextDirection={x:0,y:1};
+  if((k==='ArrowLeft'||k==='a')&&direction.x!==1) nextDirection={x:-1,y:0};
+  if((k==='ArrowRight'||k==='d')&&direction.x!==-1) nextDirection={x:1,y:0};
+  e.preventDefault();
+});
+
+function requestFullscreenWrapper(){
+  const el = document.documentElement;
+  if(el.requestFullscreen){ el.requestFullscreen().catch(()=>{}); }
+  else if(el.webkitRequestFullscreen){ el.webkitRequestFullscreen(); }
+}
+window.addEventListener('load',()=>{ updateUI(); init(); gameLoop=setInterval(step,100); setTimeout(requestFullscreenWrapper,500); });
+window.addEventListener('resize', resize);
+document.addEventListener('keydown', e => { if(e.key==='Escape'&&document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen(); });
+</script>
+</body>
+</html>
