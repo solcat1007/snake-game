@@ -1,7 +1,7 @@
 {
-  "name": "贪吃蛇 · 小工具",
+  "name": "贪吃蛇 · v2.0",
   "short_name": "贪吃蛇",
-  "description": "方向键控制小蛇，吃得越多越长",
+  "description": "经典贪吃蛇 v2.0：难度选择、三种道具、暂停、主题皮肤、触控方向盘与最高分持久化",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -15,5 +15,6 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "version": "2.0.0"
 }
